@@ -1,5 +1,7 @@
 package arrow_demo
 
+import arrow.core.raise.either
+import arrow.core.raise.nullable
 import arrow_demo.domain.DataProduct
 import arrow_demo.domain.DataProductAlgebra
 import arrow_demo.domain.DataProductId
@@ -31,6 +33,14 @@ fun main() {
 
     val combinedLocations2 = dataProductService.combineLocationsSafelyArrow(DataProductId(id1), DataProductId(id2))
     println(combinedLocations2)
+
+    val combinedLocations3 =
+        nullable { dataProductService.combineLocationsUsingRaiseContextNullable(DataProductId(id1), DataProductId(id2)) }
+    println(combinedLocations3)
+
+    val combinedLocations4 =
+        either { dataProductService.combineLocationsUsingRaiseContextEither(DataProductId(id1), DataProductId(id2)) }
+    println(combinedLocations4)
 
     val maxNumValidPortsGap = dataProductService.getNumValidPortsGapWithMaxOption(DataProductId(id2))
     println("The max availability gap is ${maxNumValidPortsGap.getOrNull()}")

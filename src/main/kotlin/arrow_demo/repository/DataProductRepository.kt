@@ -23,11 +23,11 @@ class DataProductRepository : DataProductAlgebra {
 
     override fun findById(id: DataProductId): DataProduct {
         val maybeDataProduct: DataProduct? = DATABASE[id]
-        if (maybeDataProduct != null) {
-            return maybeDataProduct
-        } else {
+        if (maybeDataProduct == null) {
             throw NoSuchElementException("Data product with id $id not found")
         }
+
+        return maybeDataProduct
     }
 
     override fun findByIdSafe(id: DataProductId): DataProduct? =
