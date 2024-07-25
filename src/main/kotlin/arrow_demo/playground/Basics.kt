@@ -3,9 +3,10 @@ package arrow_demo.playground
 import arrow.core.Either
 import arrow.core.Option
 import arrow.core.flatMap
-import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.none
 import arrow.core.right
+import arrow.core.some
 import arrow.core.toOption
 import arrow_demo.util.filter
 import arrow_demo.util.filterNot
@@ -13,7 +14,7 @@ import arrow_demo.util.filterNotOrElse
 import arrow_demo.util.filterOrElse
 
 object Basics {
-    fun getValue(): String? = "Hello, world!"
+    fun getValue(): String? = null
 
     val nullableValue: String? = getValue()
     val asResult: Result<String> = runCatching { nullableValue!! }
@@ -56,6 +57,8 @@ object Basics {
                 .filter { it.uppercase() == "A" }
                 .map { it.toString() }
         )
+        println(nullableValue.some())
+        println(none<String>())
 
         println("------------- EITHER --------------")
         println(asEither.map { it.length.toString() })
@@ -64,12 +67,10 @@ object Basics {
         println(
             asEither
                 .flatMap { it.firstOrNull().toOption().toEither { "Empty string" } }
-                .flatMap {
-                    if (it.uppercase() == "A") it.right() else "Not starting with A".left()
-                }
+                .filterOrElse({ it.uppercase() == "A" }, { "Not starting with A" })
                 .map { it.toString() }
-                .getOrElse { "Null string" }
         )
+        println(asEither.swap())
 
         println("-----------------")
         println(nullableValue)
