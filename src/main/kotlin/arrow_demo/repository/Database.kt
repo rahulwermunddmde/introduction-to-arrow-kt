@@ -56,6 +56,12 @@ val DATABASE: Map<DataProductId, DataProduct> =
                     PortName("Transportation plans"),
                     PortLocation("Kafka: logistics_overview.transportation_plans"),
                     PortAvailability(90.0)
+                ),
+                Port(
+                    PortId(5),
+                    PortName("Warehouse capacity"),
+                    PortLocation("Hive: logistics_overview.warehouse_capacity"),
+                    PortAvailability(80.0)
                 )
             )
         ),

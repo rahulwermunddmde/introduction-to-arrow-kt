@@ -18,15 +18,19 @@ import arrow.core.right
 import arrow.core.toOption
 import arrow_demo.domain.DataProduct
 import arrow_demo.domain.DataProductAlgebra
+import arrow_demo.domain.DataProductEmptyPorts
 import arrow_demo.domain.DataProductError
 import arrow_demo.domain.DataProductId
 import arrow_demo.domain.DataProductNameInvalid
 import arrow_demo.domain.DataProductNotFound
+import arrow_demo.domain.DuplicatePorts
 import arrow_demo.domain.GenericError
-import arrow_demo.domain.PortAvailabilitiesInvalid
+import arrow_demo.domain.Port
+import arrow_demo.domain.PortAvailabilityInvalid
 import arrow_demo.domain.PortLocation
-import arrow_demo.domain.PortLocationsInvalid
-import arrow_demo.domain.PortNamesInvalid
+import arrow_demo.domain.PortLocationInvalid
+import arrow_demo.domain.PortNameInvalid
+import arrow_demo.util.findDuplicatesBy
 
 class DataProductService(private val dataProducts: DataProductAlgebra) {
 
@@ -71,28 +75,37 @@ class DataProductService(private val dataProducts: DataProductAlgebra) {
     fun combineLocationsSafelyArrow(id1: DataProductId, id2: DataProductId): Set<PortLocation>? =
         nullable {
             val product1: DataProduct = dataProducts.findByIdSafe(id1).bind()
-            val product2: DataProduct = ensureNotNull(dataProducts.findByIdSafe(id2)) // Either way is fine
+            val product2: DataProduct =
+                ensureNotNull(dataProducts.findByIdSafe(id2)) // Either way is fine
             (product1.ports.map { it.location } + product2.ports.map { it.location }).toSet()
         }
 
     context(NullableRaise)
-    fun combineLocationsUsingRaiseContextNullable(id1: DataProductId, id2: DataProductId): Set<PortLocation> {
+    fun combineLocationsUsingRaiseContextNullable(
+        id1: DataProductId,
+        id2: DataProductId
+    ): Set<PortLocation> {
         val product1: DataProduct = dataProducts.findByIdSafe(id1).bind()
         val product2: DataProduct = ensureNotNull(dataProducts.findByIdSafe(id2))
         return (product1.ports.map { it.location } + product2.ports.map { it.location }).toSet()
     }
 
     context(Raise<DataProductError>)
-    fun combineLocationsUsingRaiseContextEither(id1: DataProductId, id2: DataProductId): Set<PortLocation> {
+    fun combineLocationsUsingRaiseContextEither(
+        id1: DataProductId,
+        id2: DataProductId
+    ): Set<PortLocation> {
         val product1: DataProduct = dataProducts.findByEither(id1).bind()
-        val product2: DataProduct = ensureNotNull(dataProducts.findByIdSafe(id2)) { DataProductNotFound(id2.toString()) }
+        val product2: DataProduct =
+            ensureNotNull(dataProducts.findByIdSafe(id2)) { DataProductNotFound(id2.toString()) }
         return (product1.ports.map { it.location } + product2.ports.map { it.location }).toSet()
     }
 
     fun getNumValidPortsGapWithMaxOption(id: DataProductId): Option<Int> {
         val maybeDataProduct = dataProducts.findByIdOption(id)
         val maybeMaxNumValidPorts =
-            dataProducts.findAll().maxByOrNull { it.numValidPorts() }.toOption().map { it.numValidPorts() }
+            dataProducts.findAll().maxByOrNull { it.numValidPorts() }.toOption()
+                .map { it.numValidPorts() }
 
         return maybeDataProduct.flatMap { product ->
             maybeMaxNumValidPorts.map { maxNumValidPorts ->
@@ -127,22 +140,29 @@ class DataProductService(private val dataProducts: DataProductAlgebra) {
             maxNumValidPorts - dataProduct.numValidPorts()
         }
 
-    // EitherNel<DataProductError, List<Double>> == Either<NonEmptyList<DataProductError>, List<Double>>
-    fun getNumValidPortsGapWithMaxEitherNel(idList: List<DataProductId>): EitherNel<DataProductError, List<Int>> =
-        either {
-            mapOrAccumulate(idList.map { getNumValidPortsGapWithMaxEither(it) }) { it.bind() }
-        }
-
-    fun validateDataProduct(dataProduct: DataProduct): EitherNel<DataProductError, DataProduct> =
+    // EitherNel<DataProductError, Unit> == Either<NonEmptyList<DataProductError>, Unit>
+    fun validateDataProduct(dataProduct: DataProduct): EitherNel<DataProductError, Unit> =
         either {
             zipOrAccumulate(
                 { ensure(dataProduct.name.value.isNotBlank()) { DataProductNameInvalid(dataProduct.name.value) } },
-                { ensure(dataProduct.ports.all { it.name.value.isNotBlank() }) { PortNamesInvalid(dataProduct.ports.map { it.name }) } },
-                { ensure(dataProduct.ports.all { it.location.value.isNotBlank() }) { PortLocationsInvalid(dataProduct.ports.map { it.location }) } },
-                { ensure(dataProduct.ports.all { it.availability.value >= 0.0 }) { PortAvailabilitiesInvalid(dataProduct.ports.map { it.availability }) } }
-            ) { _, _, _, _ ->
-                dataProduct
+                { ensure(dataProduct.ports.isNotEmpty()) { DataProductEmptyPorts } },
+                {
+                    val duplicatePortIds = dataProduct.ports.findDuplicatesBy { it.id }
+                    ensure(duplicatePortIds.isEmpty()) { DuplicatePorts(duplicatePortIds.keys) }
+                }
+            ) { _, _, _ ->
+                val processedPorts = dataProduct.ports.map(::validatePort)
+                mapOrAccumulate(processedPorts) { it.bind() }
             }
+        }
+
+    fun validatePort(port: Port): EitherNel<DataProductError, Unit> =
+        either {
+            zipOrAccumulate(
+                { ensure(port.name.value.isNotBlank()) { PortNameInvalid(port.name.value ) } },
+                { ensure(port.location.value.isNotBlank()) { PortLocationInvalid(port.location.value) } },
+                { ensure(port.availability.value in 0.0..100.0) { PortAvailabilityInvalid(port.availability.value.toString()) } },
+            ) { _, _, _ -> }
         }
 
     private fun List<DataProduct>.maxNumValidPorts(): Either<GenericError, Int> =

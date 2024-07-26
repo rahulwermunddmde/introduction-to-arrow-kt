@@ -66,7 +66,7 @@ value class PortAvailability(val value: Double) {
             Parsers
                 .nonBlankString { PortFieldNotFound("availability") }
                 .double { PortAvailabilityInvalid(it) }
-                .filter({ it >= 0.0 }, { NegativeAvailability })
+                .filter({ it in 0.0 .. 100.0 }, { ImpossibleAvailability })
                 .map { PortAvailability(it) }
     }
 }
@@ -76,7 +76,7 @@ value class PortAvailabilityEither private constructor(val value: Double) {
     companion object {
         operator fun invoke(value: Double): Either<DataProductError, PortAvailabilityEither> =
             either {
-                ensure(value >= 0.0) { NegativeAvailability }
+                ensure(value >= 0.0) { ImpossibleAvailability }
                 PortAvailabilityEither(value)
             }
     }
