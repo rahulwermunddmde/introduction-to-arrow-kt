@@ -80,6 +80,12 @@ class DataProductService(private val dataProducts: DataProductAlgebra) {
             (product1.ports.map { it.location } + product2.ports.map { it.location }).toSet()
         }
 
+    fun combineLocationsSafely(ids: List<DataProductId>): Set<PortLocation>? =
+        nullable {
+            val products = ids.map { dataProducts.findById(it) }.bindAll()
+            products.flatMap { it.ports.map { p -> p.location } }.toSet()
+        }
+
     context(NullableRaise)
     fun combineLocationsUsingRaiseContextNullable(
         id1: DataProductId,
