@@ -124,7 +124,7 @@ class DataProductService(private val dataProducts: DataProductAlgebra) {
             maxNumValidPortsDataProduct.numValidPorts() - dataProduct.numValidPorts()
         }
 
-    fun getNumValidPortsGapWithMaxTry(id: DataProductId): Result<Int> =
+    fun getNumValidPortsGapWithMaxResult(id: DataProductId): Result<Int> =
         result {
             val dataProduct = runCatching { dataProducts.findById(id) }.bind()
             val maxNumValidPortsDataProduct =

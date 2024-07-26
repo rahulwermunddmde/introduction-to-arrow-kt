@@ -10,7 +10,7 @@ import com.sksamuel.tribune.core.ints.int
 import com.sksamuel.tribune.core.map
 import com.sksamuel.tribune.core.strings.notNullOrBlank
 
-object Playground {
+object ParserBasics {
 
     @JvmInline
     value class MyInt(val value: Int)

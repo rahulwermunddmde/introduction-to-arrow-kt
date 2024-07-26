@@ -65,7 +65,7 @@ object DataProductApp {
         println("The max availability gap is ${maxNumValidPortsGap.getOrNull()}")
 
         val maxNumValidPortsGap2 =
-            dataProductService.getNumValidPortsGapWithMaxTry(DataProductId(id1))
+            dataProductService.getNumValidPortsGapWithMaxResult(DataProductId(id1))
         println("The max availability gap is ${maxNumValidPortsGap2.getOrNull()}")
 
         val maxNumValidPortsGap3 =
